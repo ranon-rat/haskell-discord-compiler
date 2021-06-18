@@ -33,9 +33,9 @@ main=print "hello world"
 getCode :: String -> String
 getCode x = replaceSomeShittyStuff $drop 14 $take (length x -3) x
 
-executeCode :: String -> String
+executeCode :: String -> IO String
 executeCode x = do
-  (_, Just outHandle, _, ph) <- createProcess (proc "ghc"["-e",x,"-hide-all-packages","-no-global-package-db","-no-user-package-db"]) {std_out = CreatePipe}
+  (_, Just outHandle, _, ph) <- createProcess (proc "ghc"["-e",x,"-no-global-package-db","-no-user-package-db"]) {std_out = CreatePipe}
 
   out <- hGetContents outHandle
   threadDelay 1000000
@@ -45,4 +45,5 @@ executeCode x = do
 
 main :: IO ()
 main = do
-  print $executeCode "print 1"
+  out<-executeCode "print 1"
+  print out
