@@ -1,0 +1,5 @@
+cradle:
+  stack:
+    - path: "./src/Main.hs"
+      component: "haskell-discord-compiler:exe:haskell-discord-compiler"
+    - path: "./Setup.hs"

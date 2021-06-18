@@ -1,0 +1,13 @@
+
+resolver:
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/0.yaml
+
+
+extra-deps:
+- emoji-0.1.0.2
+- discord-haskell-1.8.8
+- regex-compat-0.95.2.1
+- process-1.6.9.0
+- delay-0
+packages:
+- .
