@@ -3,6 +3,11 @@ module Main where
 import Control.Concurrent (threadDelay)
 import System.IO (hGetContents)
 import System.Process
+    ( createProcess,
+      proc,
+      terminateProcess,
+      CreateProcess(std_out),
+      StdStream(CreatePipe) )
 import Text.Regex (Regex, matchRegex, mkRegex, subRegex)
 
 {-
