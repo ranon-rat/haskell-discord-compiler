@@ -1,19 +1,17 @@
+
 module Main where
 
-import Calamity (EventType (MessageCreateEvt), Message (Message), Token (BotToken), defaultIntents, react, runBotIO, tell)
+import Calamity (EventType (MessageCreateEvt), Token (BotToken), defaultIntents, react, runBotIO, tell, Message (Message), EmbedFooter (text))
 import Calamity.Cache.InMemory (runCacheInMemory)
-import Calamity.Commands (addCommands)
+import Calamity.Types.Model.Channel.Message(content)
 import Calamity.Metrics.Noop (runMetricsNoop)
 import Control.Concurrent (threadDelay)
-import Control.Lens ()
 import Control.Monad (void)
-import Data.Default ()
-import Data.Generics.Labels ()
-import Data.Maybe ()
-import Data.Text.Lazy (Text, pack)
+import Data.Text.Lazy (Text,pack,unpack )
 import qualified Di
-import DiPolysemy (info, runDiToIO)
-import Polysemy (embedToFinal, runFinal)
+import DiPolysemy ( info, runDiToIO )
+import Polysemy  ( embedToFinal, runFinal )
+
 import System.Directory (removeFile)
 import System.IO (hGetContents)
 import System.Process
@@ -92,6 +90,8 @@ Ok, one module loaded.
 *Main> 12
 *Main> Leaving GHCi.
 --}
+--idkIfThisWork::EHType 'MessageCreateEvt->
+
 
 runBot :: Text -> IO ()
 runBot token = Di.new $ \di ->
@@ -104,8 +104,16 @@ runBot token = Di.new $ \di ->
     . runBotIO (BotToken token) defaultIntents
     $ do
       info @Text "Connected successfully."
-      addCommands $ do
-        command @'[KleenePlusConcat Text] "yourcommand" $ \ctx rest -> do
+      react @'MessageCreateEvt $ \msg -> do
+        let Message {content} = msg 
+        let out=unpack content
+        case take 14 out of
+          "$compile ```hs" -> do
+            stt<-executeCode$replaceSomeShittyStuff$getCode out 
+            void . tell @Text msg $pack stt
+          
+       
+          
 
 main :: IO ()
 main = do
