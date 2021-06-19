@@ -16,6 +16,12 @@ extra-source-files:  README.md
 executable haskell-discord-compiler
   hs-source-dirs:      src
   main-is:             Main.hs
+  ghc-options:        -fplugin=Polysemy.Plugin
+  default-extensions:
+    DataKinds
+    OverloadedLabels
+    OverloadedStrings
+    TypeApplications
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
                       , emoji >= 0.1.0.2
@@ -25,3 +31,17 @@ executable haskell-discord-compiler
                       , process>=1.6.11.0
                       , random>=1.2.0
                       , directory>=1.3.6.2
+                      , calamity >= 0.1.30.1
+                      , text >= 1.2 && < 2
+                      , lens >= 4.18 && < 5
+                      , generic-lens-labels>=0.1.0.2
+                      , data-default
+                      , polysemy
+                      , di >= 1.3 && < 2
+                      , df1 >= 0.3 && < 0.5
+                      , di-core >= 1.0.4
+                      , polysemy >= 1.5
+                      , polysemy-plugin >= 0.3
+                      , stm >= 2.5
+                      , di-polysemy
+                      , text-show >= 3.9
