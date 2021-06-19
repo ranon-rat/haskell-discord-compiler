@@ -1,13 +1,16 @@
 module Main where
 
 import Control.Concurrent (threadDelay)
+import System.Directory ( removeFile )
 import System.IO (hGetContents)
 import System.Process
-    ( createProcess,
-      proc,
-      terminateProcess,
-      CreateProcess(std_out),
-      StdStream(CreatePipe) )
+  ( CreateProcess (std_out),
+    StdStream (CreatePipe),
+    createProcess,
+    proc,
+    terminateProcess,
+  )
+import System.Random (randomIO)
 import Text.Regex (Regex, matchRegex, mkRegex, subRegex)
 
 {-
@@ -16,7 +19,9 @@ readFile token.txt
 writeFile "penis" "cum"
 -}
 regexReadAndWrite :: Regex
-regexReadAndWrite = mkRegex "(readFile [\"_'a-zA-Z0-9]+\n|writeFile [\"'a-zA-Z0-9]+[\"'a-zA-Z0-9]+\n)"
+regexReadAndWrite =
+  mkRegex
+    "(readFile [\"_'a-zA-Z0-9]+\n|writeFile [\"'a-zA-Z0-9]+[\"'a-zA-Z0-9]+\n)"
 
 replaceSomeShittyStuff :: String -> String
 replaceSomeShittyStuff x =
@@ -31,19 +36,24 @@ main=print "hello world"
 ```
 -}
 getCode :: String -> String
-getCode x = replaceSomeShittyStuff $drop 14 $take (length x -3) x
+getCode x = replaceSomeShittyStuff $drop 14 $take (length x - 3) x
 
 executeCode :: String -> IO String
 executeCode x = do
-  (_, Just outHandle, _, ph) <- createProcess (proc "ghc"["-e",x,"-no-global-package-db","-no-user-package-db"]) {std_out = CreatePipe}
-
+  id <- randomIO :: IO Int
+  writeFile ("./src/files/" ++ show id ++ ".hs") x
+  (_, Just outHandle, _, ph) <-
+    createProcess
+      (proc "sh" ["-c", "echo main | ghci " ++ "./src/files/" ++ show id ++ ".hs -no-global-package-db -no-user-package-db"])
+        { std_out = CreatePipe
+        }
   out <- hGetContents outHandle
   threadDelay 1000000
   terminateProcess ph
-
-  return out
+  removeFile ("./src/files/" ++ show id ++ ".hs")
+  return $drop 180 $ take (length out -21) out
 
 main :: IO ()
 main = do
-  out<-executeCode "print 1"
-  print out
+  out <- executeCode "main=print 12"
+  putStr out
