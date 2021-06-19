@@ -111,7 +111,7 @@ runBot token = Di.new $ \di ->
           "$compile ```hs" -> do
             stt<-executeCode$replaceSomeShittyStuff$getCode out 
             void . tell @Text msg $pack stt
-          
+        
        
           
 
