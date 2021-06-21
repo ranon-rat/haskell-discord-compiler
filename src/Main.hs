@@ -1,17 +1,27 @@
+-- allows "string literals" to be Text
+{-# LANGUAGE OverloadedStrings #-}
+
 
 module Main where
 
-import Calamity (EventType (MessageCreateEvt), Token (BotToken), defaultIntents, react, runBotIO, tell, Message (Message), EmbedFooter (text))
-import Calamity.Cache.InMemory (runCacheInMemory)
-import Calamity.Types.Model.Channel.Message(content)
-import Calamity.Metrics.Noop (runMetricsNoop)
 import Control.Concurrent (threadDelay)
-import Control.Monad (void)
-import Data.Text.Lazy (Text,pack,unpack )
-import qualified Di
-import DiPolysemy ( info, runDiToIO )
-import Polysemy  ( embedToFinal, runFinal )
-
+import Control.Monad (when)
+import Data.Text (Text, isPrefixOf, pack, toLower, unpack)
+import qualified Data.Text.IO as TIO
+import Discord
+  ( DiscordHandler,
+    RestCallErrorCode,
+    RunDiscordOpts (discordOnEvent, discordToken),
+    def,
+    restCall,
+    runDiscord,
+  )
+import qualified Discord.Requests as R
+import Discord.Types
+  ( Event (MessageCreate),
+    Message (messageAuthor, messageChannel, messageText),
+    User (userIsBot),
+  )
 import System.Directory (removeFile)
 import System.IO (hGetContents)
 import System.Process
@@ -23,6 +33,7 @@ import System.Process
   )
 import System.Random (randomIO)
 import Text.Regex (Regex, matchRegex, mkRegex, subRegex)
+--import qualified UnliftIO.Concurrent as U
 
 {-
 -- this is for replace this kinda stuff
@@ -32,7 +43,7 @@ writeFile "penis" "cum"
 regexReadAndWrite :: Regex
 regexReadAndWrite =
   mkRegex
-    "(readFile [\"_'a-zA-Z0-9]+\n|writeFile [\"'a-zA-Z0-9]+[\"'a-zA-Z0-9]+\n)"
+    "(readFile |writeFile)"
 
 replaceSomeShittyStuff :: String -> String
 replaceSomeShittyStuff x =
@@ -48,38 +59,31 @@ main=print "hello world"
 getCode :: String -> String
 getCode x = replaceSomeShittyStuff $drop 14 $take (length x - 3) x
 
-executeCode :: String -> IO String
+executeCode :: Message -> IO (DiscordHandler (Either RestCallErrorCode Message))
 executeCode x = do
-  id <- randomIO :: IO Int
+  id <- randomIO
   -- this create a file with the code inside
-  writeFile ("./src/files/" ++ show id ++ ".hs") x
+  writeFile ("./src/files/" ++ show id ++ ".hs") (replaceSomeShittyStuff $getCode $unpack $messageText x)
   -- then it run the file with ghci with some flags for avoid some security problems
   (_, Just outHandle, _, ph) <-
     createProcess
       (proc "sh" ["-c", "echo main | ghci " ++ "./src/files/" ++ show id ++ ".hs -no-global-package-db -no-user-package-db"])
         { std_out = CreatePipe -- we use a pipe because i dont want to stop the program if someone insert something like this
-        {--
-        recusiveShittyStuff=do
-          print "penis"
-          recusiveShittyStuff
-
-        --}
+        -- xd=do print "ass";xd
         }
   -- then we get the output
   out <- hGetContents outHandle
   -- we wait a second
   threadDelay 1000000
-  -- i terminate the process if someone insert me something like idk
-  {--
-        recusiveShittyStuff=do
-          print "penis"
-          recusiveShittyStuff
-  --}
+  -- i terminate the process if someone insert me something like this 
+  -- xd=do print "ass";xd
+
   terminateProcess ph
   -- remove the file
   removeFile ("./src/files/" ++ show id ++ ".hs")
   -- and we get the output
-  return $drop 180 $ take (length out -21) out
+
+  return $restCall (R.CreateMessage (messageChannel x) (pack $drop 180 $ take (length out -21) out))
 
 -- maybe for u its a little bit weird that i take a slice of the string but it have a reason,
 -- because if i dont take that slice it returns me something like this
@@ -90,32 +94,26 @@ Ok, one module loaded.
 *Main> 12
 *Main> Leaving GHCi.
 --}
---idkIfThisWork::EHType 'MessageCreateEvt->
 
+pingpongExample :: Text -> IO ()
+pingpongExample token = do
+  userFacingError <- runDiscord $ def {discordToken = token, discordOnEvent = eventHandler}
+  TIO.putStrLn userFacingError
 
-runBot :: Text -> IO ()
-runBot token = Di.new $ \di ->
-  void
-    . runFinal
-    . embedToFinal @IO
-    . runDiToIO di
-    . runCacheInMemory
-    . runMetricsNoop
-    . runBotIO (BotToken token) defaultIntents
-    $ do
-      info @Text "Connected successfully."
-      react @'MessageCreateEvt $ \msg -> do
-        let Message {content} = msg 
-        let out=unpack content
-        case take 14 out of
-          "$compile ```hs" -> do
-            stt<-executeCode$replaceSomeShittyStuff$getCode out 
-            void . tell @Text msg $pack stt
-        
-       
-          
+eventHandler :: Event -> DiscordHandler ()
+eventHandler event = case event of
+  MessageCreate m -> when (not (fromBot m) && isPing (messageText m)) $ do
+    xd <- executeCode m
+    pure ()
+  _ -> pure ()
+
+fromBot :: Message -> Bool
+fromBot m = userIsBot (messageAuthor m)
+
+isPing :: Text -> Bool
+isPing = ("ping" `isPrefixOf`) . toLower
 
 main :: IO ()
 main = do
   token <- readFile "token.txt"
-  runBot $ pack token
+  pingpongExample $ pack token
