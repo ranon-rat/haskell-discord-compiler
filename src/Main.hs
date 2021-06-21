@@ -95,8 +95,8 @@ Ok, one module loaded.
 *Main> Leaving GHCi.
 --}
 
-pingpongExample :: Text -> IO ()
-pingpongExample token = do
+runBot :: Text -> IO ()
+runBot token = do
   userFacingError <- runDiscord $ def {discordToken = token, discordOnEvent = eventHandler}
   TIO.putStrLn userFacingError
 
@@ -116,4 +116,4 @@ isPing = ("ping" `isPrefixOf`) . toLower
 main :: IO ()
 main = do
   token <- readFile "token.txt"
-  pingpongExample $ pack token
+  runBot $ pack token
