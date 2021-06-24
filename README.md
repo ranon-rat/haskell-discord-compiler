@@ -3,8 +3,10 @@
 A simple discord compiler that its made in haskell , I made this for fun and I tried to improve my skills in haskell.
 
 I couldn't have done this project without [discord-haskell](https://hackage.haskell.org/package/discord-haskell)
-
-![img](https://media.discordapp.net/attachments/820472030474272769/857444085915582504/Screen_Shot_2021-06-23_at_21.16.09.png)
+## How it looks
+| simple function| infinite loop|
+|--|--|
+|![img](https://media.discordapp.net/attachments/820472030474272769/857444085915582504/Screen_Shot_2021-06-23_at_21.16.09.png)|![img](https://media.discordapp.net/attachments/820472030474272769/857521599782715392/Screen_Shot_2021-06-24_at_2.24.29.png)
 
 
 ## How to deploy it
