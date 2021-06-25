@@ -1,5 +1,4 @@
-# Haskell-discord-compiler
-
+# [Haskell-discord-compiler](https://discord.gg/e52RFh7Cg2)
 A simple discord compiler that its made in haskell , I made this for fun and I tried to improve my skills in haskell.
 
 I couldn't have done this project without [discord-haskell](https://hackage.haskell.org/package/discord-haskell)
@@ -24,3 +23,5 @@ stack run
 
 ## Me after made this project
 ![image](https://media1.tenor.com/images/9385eb15bbb7a5d76357a1a59544b072/tenor.gif?itemid=12496470)
+
+[discord server](https://discord.gg/e52RFh7Cg2)
