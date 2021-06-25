@@ -4,9 +4,9 @@ A simple discord compiler that its made in haskell , I made this for fun and I t
 
 I couldn't have done this project without [discord-haskell](https://hackage.haskell.org/package/discord-haskell)
 ## How it looks
-| simple function| infinite loop|
-|--|--|
-|![img](https://media.discordapp.net/attachments/820472030474272769/857444085915582504/Screen_Shot_2021-06-23_at_21.16.09.png)|![img](https://media.discordapp.net/attachments/820472030474272769/857521599782715392/Screen_Shot_2021-06-24_at_2.24.29.png)
+| simple function| error| infinite loop|
+|--|--|--|
+|![img](https://media.discordapp.net/attachments/820472030474272769/857759230135762964/Screen_Shot_2021-06-24_at_18.08.10.png?width=1237&height=941)|![img](https://media.discordapp.net/attachments/820472030474272769/857762776840011786/Screen_Shot_2021-06-24_at_18.22.50.png?width=1232&height=943)|![img](https://media.discordapp.net/attachments/820472030474272769/857521599782715392/Screen_Shot_2021-06-24_at_2.24.29.png)
 
 
 ## How to deploy it
