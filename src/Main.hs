@@ -12,12 +12,18 @@ import Discord (DiscordHandler, RunDiscordOpts (discordOnEvent, discordToken), d
 import Discord.Internal.Rest.Channel (ChannelRequest)
 import qualified Discord.Requests as R
 import Discord.Types
-    ( User(userIsBot),
-      Event(MessageCreate),
-      CreateEmbedImage(CreateEmbedImageUrl),
-      CreateEmbed(createEmbedAuthorName, createEmbedAuthorUrl,
-                  createEmbedTitle, createEmbedDescription, createEmbedImage),
-      Message(messageText, messageId, messageChannel, messageAuthor) )
+  ( CreateEmbed
+      ( createEmbedAuthorName,
+        createEmbedAuthorUrl,
+        createEmbedDescription,
+        createEmbedImage,
+        createEmbedTitle
+      ),
+    CreateEmbedImage (CreateEmbedImageUrl),
+    Event (MessageCreate),
+    Message (messageAuthor, messageChannel, messageId, messageText),
+    User (userIsBot),
+  )
 import System.Directory (removeFile)
 import System.IO (hGetContents)
 import System.Process (CreateProcess (std_err, std_out), StdStream (CreatePipe), cleanupProcess, createProcess, interruptProcessGroupOf, proc, terminateProcess)
@@ -44,7 +50,7 @@ main=print "hello world"
 ```
 -}
 getCode :: String -> String
-getCode x = replaceSomeShittyStuff $drop 14 $take (length x - 3) x
+getCode x = replaceSomeShittyStuff $drop (if find x "```hs" then 14 else 12) $take (length x - 3) x
 
 executeCode :: Message -> IO (ChannelRequest Message)
 executeCode x = do
@@ -52,52 +58,55 @@ executeCode x = do
 
   let nameCode = "./src/files/" ++ show (if id < 0 then id * (-1) else id) ++ ".hs"
       nameOut = "src/files/" ++ show (if id < 0 then id * (-1) else id) ++ ".txt"
-
-  writeFile nameCode (replaceSomeShittyStuff $getCode $unpack $messageText x)
-  (_, Just outHandler, Just errHandle, ph) <-
-    createProcess
-      (proc "sh" ["-c", "echo main | ghci " ++ nameCode ++ " -no-global-package-db -no-user-package-db  >" ++ nameOut ++ " & sleep 3;kill $!2>&1 "])
-        { std_out = CreatePipe,
-          std_err = CreatePipe
-        }
-
-  threadDelay $ 2 * 10 ^ 6
-  terminateProcess ph
-  outIO <- readFile nameOut
-
-  errIO <- hGetContents errHandle
-  -- src/files/6027314577073774077.hs
-  -- echo main | ghci src/files/6027314577073774077.hs -no-global-package-db -no-user-package-db > src/files/6027314577073774077 & sleep 1;kill $!
-  d <- hGetContents outHandler
-  print d
-
-  print outIO
-
-  let message =
-        R.CreateMessageEmbed
-          (messageChannel x)
-          "output"
-          $def
-            { createEmbedAuthorName = "server",
-              createEmbedAuthorUrl = "https://discord.gg/e52RFh7Cg2",
-              createEmbedTitle = if not $find outIO "Failed" then "Big brain Moment" else "Error 😩",
-              createEmbedDescription =
-                pack $
-                  "```"
-                    ++ ( if not $find outIO "Failed"
-                           then take 500 (drop 179 $ take (length outIO -21) outIO)
-                           else "hs\n" ++ take 500 errIO ++ "\n"
-                       )
-                    ++ "```",
-              createEmbedImage =
-                if find outIO "Failed"
-                  then Just $ CreateEmbedImageUrl "https://media1.tenor.com/images/039d5fa4895c07d58b8c88e69847cf16/tenor.gif?itemid=17634321"
-                  else Just $ CreateEmbedImageUrl "https://i0.wp.com/media1.tenor.com/images/a7215e2bf39482df8bb694f132af5c78/tenor.gif?itemid=16327782?resize=91,91"
+  let code = replaceSomeShittyStuff $getCode $unpack $messageText x
+  if not $null code
+    then do
+      writeFile nameCode (replaceSomeShittyStuff $getCode $unpack $messageText x)
+      (_, Just outHandler, Just errHandle, ph) <-
+        createProcess
+          (proc "sh" ["-c", "echo main | ghci " ++ nameCode ++ " -no-global-package-db -no-user-package-db  >" ++ nameOut ++ " & sleep 3;kill $!2>&1 "])
+            { std_out = CreatePipe,
+              std_err = CreatePipe
             }
 
-  removeFile nameCode
-  removeFile nameOut
-  return message
+      threadDelay $ 2 * 10 ^ 6
+      terminateProcess ph
+      outIO <- readFile nameOut
+
+      errIO <- hGetContents errHandle
+      -- src/files/6027314577073774077.hs
+      -- echo main | ghci src/files/6027314577073774077.hs -no-global-package-db -no-user-package-db > src/files/6027314577073774077 & sleep 1;kill $!
+      d <- hGetContents outHandler
+      print d
+
+      print outIO
+
+      let message =
+            R.CreateMessageEmbed
+              (messageChannel x)
+              "output"
+              $def
+                { createEmbedAuthorName = "server",
+                  createEmbedAuthorUrl = "https://discord.gg/e52RFh7Cg2",
+                  createEmbedTitle = if not $find outIO "Failed" then "Big brain Moment" else "Error 😩",
+                  createEmbedDescription =
+                    pack $
+                      "```"
+                        ++ ( if not $find outIO "Failed"
+                               then take 500 (drop 179 $ take (length outIO -21) outIO)
+                               else "hs\n" ++ take 500 errIO ++ "\n"
+                           )
+                        ++ "```",
+                  createEmbedImage =
+                    if find outIO "Failed"
+                      then Just $ CreateEmbedImageUrl "https://media1.tenor.com/images/039d5fa4895c07d58b8c88e69847cf16/tenor.gif?itemid=17634321"
+                      else Just $ CreateEmbedImageUrl "https://i0.wp.com/media1.tenor.com/images/a7215e2bf39482df8bb694f132af5c78/tenor.gif?itemid=16327782?resize=91,91"
+                }
+
+      removeFile nameCode
+      removeFile nameOut
+      return message
+    else return . R.CreateMessageEmbed (messageChannel x) "error" $def {createEmbedTitle ="Missing arguments",createEmbedImage = Just $ CreateEmbedImageUrl "https://media.discordapp.net/attachments/820472030474272769/858103586511519744/Screen_Shot_2021-06-25_at_16.57.05.png"}
 
 runBot :: Text -> IO ()
 runBot token = do
@@ -126,16 +135,16 @@ eventHandler event =
                   $def
                     { createEmbedAuthorName = "server",
                       createEmbedAuthorUrl = "https://discord.gg/e52RFh7Cg2",
-                      createEmbedTitle ="list of commands",
-                      createEmbedDescription="```md\n- $help *this command is for receive help lmao*\n- $github *if you want to see the source code*\n- $server *if you want to join us*\n- $compile *this compile the input ant then return the output* ```",
+                      createEmbedTitle = "list of commands",
+                      createEmbedDescription = "```md\n- $help *this command is for receive help lmao*\n- $github *if you want to see the source code*\n- $server *if you want to join us*\n- $compile *this compile the input ant then return the output* ```",
                       createEmbedImage = Just $ CreateEmbedImageUrl "https://media.discordapp.net/attachments/820472030474272769/858103586511519744/Screen_Shot_2021-06-25_at_16.57.05.png"
                     }
               )
           pure ()
-        "$github"->do
+        "$github" -> do
           _ <- restCall (R.CreateReaction (messageChannel m, messageId m) "hearts")
-          _<-restCall (R.CreateMessage (messageChannel m) "https://github.com/ranon-rat/haskell-discord-compiler")
-          pure()
+          _ <- restCall (R.CreateMessage (messageChannel m) "https://github.com/ranon-rat/haskell-discord-compiler")
+          pure ()
         _ -> pure ()
     _ -> pure ()
 
