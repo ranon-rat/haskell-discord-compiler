@@ -29,5 +29,6 @@ executable haskell-discord-compiler
                       , process==1.6.9.0
                       , random==1.2.0
                       , unliftio==0.2.18
+                      , split==0.2.3.4
                       
                  
