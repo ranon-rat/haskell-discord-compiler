@@ -12,6 +12,12 @@ import Discord (DiscordHandler, RunDiscordOpts (discordOnEvent, discordToken), d
 import Discord.Internal.Rest.Channel (ChannelRequest)
 import qualified Discord.Requests as R
 import Discord.Types
+    ( User(userIsBot),
+      Event(MessageCreate),
+      CreateEmbedImage(CreateEmbedImageUrl),
+      CreateEmbed(createEmbedAuthorName, createEmbedAuthorUrl,
+                  createEmbedTitle, createEmbedDescription, createEmbedImage),
+      Message(messageText, messageId, messageChannel, messageAuthor) )
 import System.Directory (removeFile)
 import System.IO (hGetContents)
 import System.Process (CreateProcess (std_err, std_out), StdStream (CreatePipe), cleanupProcess, createProcess, interruptProcessGroupOf, proc, terminateProcess)
