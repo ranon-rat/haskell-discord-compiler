@@ -11,54 +11,33 @@ import qualified Data.Text.IO as TIO
 import Discord (DiscordHandler, RunDiscordOpts (discordOnEvent, discordToken), def, restCall, runDiscord)
 import Discord.Internal.Rest.Channel (ChannelRequest)
 import qualified Discord.Requests as R
-import Discord.Types
-  ( CreateEmbed
-      ( createEmbedAuthorName,
-        createEmbedAuthorUrl,
-        createEmbedDescription,
-        createEmbedImage,
-        createEmbedTitle
-      ),
-    CreateEmbedImage (CreateEmbedImageUrl),
-    Event (MessageCreate),
-    Message (messageAuthor, messageChannel, messageId, messageText),
-    User (userIsBot),
-  )
+import Discord.Types (CreateEmbed (createEmbedAuthorName, createEmbedAuthorUrl, createEmbedDescription, createEmbedImage, createEmbedTitle), CreateEmbedImage (CreateEmbedImageUrl), Event (MessageCreate), Message (messageAuthor, messageChannel, messageId, messageText), User (userIsBot))
 import System.Directory (removeFile)
 import System.IO (hGetContents)
 import System.Process (CreateProcess (std_err, std_out), StdStream (CreatePipe), cleanupProcess, createProcess, interruptProcessGroupOf, proc, terminateProcess)
 import System.Random (randomIO)
 import Text.Regex (Regex, matchRegex, mkRegex, subRegex)
 
-regexReadAndWrite :: Regex
-regexReadAndWrite =
-  mkRegex
-    "(readFile |writeFile)"
-
 replaceSomeShittyStuff :: String -> String
 replaceSomeShittyStuff x =
-  case matchRegex regexReadAndWrite x of
+  case matchRegex (mkRegex "(readFile |writeFile)") x of
     Nothing -> x
-    Just _ -> replaceSomeShittyStuff (subRegex regexReadAndWrite x "")
+    Just _ -> replaceSomeShittyStuff (subRegex (mkRegex "(readFile |writeFile)") x "")
 
 find :: Eq a => [a] -> [a] -> Bool
 find x y = any (\a -> take (length y) (drop a x) == y) [0 .. (length x)]
 
-{-
-$compile ```hs
-main=print "hello world"
-```
--}
 getCode :: String -> String
 getCode x = replaceSomeShittyStuff $drop (if find x "```hs" then 14 else 12) $take (length x - 3) x
 
 executeCode :: Message -> IO (ChannelRequest Message)
 executeCode x = do
   id <- randomIO :: IO Int
-
-  let nameCode = "./src/files/" ++ show (if id < 0 then id * (-1) else id) ++ ".hs"
-      nameOut = "src/files/" ++ show (if id < 0 then id * (-1) else id) ++ ".txt"
-  let code = replaceSomeShittyStuff $getCode $unpack $messageText x
+  let (nameCode, nameOut) =
+        ( "./src/files/" ++ show (if id < 0 then id * (-1) else id) ++ ".hs",
+          "src/files/" ++ show (if id < 0 then id * (-1) else id) ++ ".txt"
+        )
+      code = replaceSomeShittyStuff $getCode $unpack $messageText x
   if not $null code
     then do
       writeFile nameCode (replaceSomeShittyStuff $getCode $unpack $messageText x)
@@ -68,18 +47,12 @@ executeCode x = do
             { std_out = CreatePipe,
               std_err = CreatePipe
             }
-
       threadDelay $ 2 * 10 ^ 6
       terminateProcess ph
       outIO <- readFile nameOut
-
       errIO <- hGetContents errHandle
-      -- src/files/6027314577073774077.hs
-      -- echo main | ghci src/files/6027314577073774077.hs -no-global-package-db -no-user-package-db > src/files/6027314577073774077 & sleep 1;kill $!
       d <- hGetContents outHandler
       print d
-
-      print outIO
 
       let message =
             R.CreateMessageEmbed
@@ -102,11 +75,9 @@ executeCode x = do
                       then Just $ CreateEmbedImageUrl "https://media1.tenor.com/images/039d5fa4895c07d58b8c88e69847cf16/tenor.gif?itemid=17634321"
                       else Just $ CreateEmbedImageUrl "https://i0.wp.com/media1.tenor.com/images/a7215e2bf39482df8bb694f132af5c78/tenor.gif?itemid=16327782?resize=91,91"
                 }
-
-      removeFile nameCode
-      removeFile nameOut
+      mapM_ removeFile [nameCode, nameOut]
       return message
-    else return . R.CreateMessageEmbed (messageChannel x) "error" $def {createEmbedTitle ="Missing arguments",createEmbedImage = Just $ CreateEmbedImageUrl "https://media.discordapp.net/attachments/820472030474272769/858103586511519744/Screen_Shot_2021-06-25_at_16.57.05.png"}
+    else return . R.CreateMessageEmbed (messageChannel x) "error" $def {createEmbedTitle = "Missing arguments", createEmbedImage = Just $ CreateEmbedImageUrl "https://media.discordapp.net/attachments/820472030474272769/858103586511519744/Screen_Shot_2021-06-25_at_16.57.05.png"}
 
 runBot :: Text -> IO ()
 runBot token = do
@@ -116,7 +87,7 @@ runBot token = do
 eventHandler :: Event -> DiscordHandler ()
 eventHandler event =
   case event of
-    MessageCreate m -> when (not (fromBot m) && take 1 (unpack $messageText m) == "$") $ do
+    MessageCreate m -> when (not (userIsBot (messageAuthor m)) && take 1 (unpack $messageText m) == "$") $ do
       case head $splitOn " " $unpack $messageText m of
         "$compile" -> do
           _ <- restCall (R.CreateReaction (messageChannel m, messageId m) "eyes")
@@ -125,6 +96,7 @@ eventHandler event =
           pure ()
         "$server" -> do
           _ <- restCall (R.CreateMessage (messageChannel m) "https://discord.gg/e52RFh7Cg2")
+          _ <- restCall (R.CreateReaction (messageChannel m, messageId m) "hearts")
           pure ()
         "$help" -> do
           _ <-
@@ -147,9 +119,6 @@ eventHandler event =
           pure ()
         _ -> pure ()
     _ -> pure ()
-
-fromBot :: Message -> Bool
-fromBot m = userIsBot (messageAuthor m)
 
 main :: IO ()
 main = do
