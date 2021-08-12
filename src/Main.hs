@@ -43,7 +43,7 @@ executeCode x = do
       writeFile nameCode (replaceSomeShittyStuff $getCode $unpack $messageText x)
       (_, Just outHandler, Just errHandle, ph) <-
         createProcess
-          (proc "sh" ["-c", "echo main | ghci " ++ nameCode ++ " -no-global-package-db -no-user-package-db  >" ++ nameOut ++ " & sleep 3;kill $!2>&1 "])
+          (proc "sh" ["-c", "echo main | ghci " ++ nameCode ++ " -no-global-package-db -no-user-package-db  >" ++ nameOut ++ " & sleep 3;kill $!"])
             { std_out = CreatePipe,
               std_err = CreatePipe
             }
